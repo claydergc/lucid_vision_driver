@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 class CameraSetting
 {

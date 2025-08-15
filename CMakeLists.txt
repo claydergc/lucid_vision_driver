@@ -15,19 +15,25 @@ find_package(ament_lint_auto REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(image_geometry REQUIRED)
+find_package(camera_info_manager REQUIRED)
 
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindARENA.cmake")
 
 link_directories(${arena_sdk_LIBRARIES})
 
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "/home/claydergc/SystemPrograms/miniforge3/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 ament_auto_find_build_dependencies()
 
 ament_auto_add_library(arena_camera_node SHARED
-        "include/arena_camera/arena_camera.h"
-        "include/arena_camera/arena_camera_node.h"
-        "include/arena_camera/arena_cameras_handler.h"
-        "include/arena_camera/camera_settings.h"
+        "include/lucid_vision_driver/arena_camera.h"
+        "include/lucid_vision_driver/arena_camera_node.h"
+        "include/lucid_vision_driver/arena_cameras_handler.h"
+        "include/lucid_vision_driver/camera_settings.h"
         "src/arena_camera_node.cpp"
         "src/arena_camera.cpp"
         "src/arena_cameras_handler.cpp")
@@ -38,15 +44,24 @@ target_include_directories(arena_camera_node
         PUBLIC
         ${arena_sdk_INCLUDES}
         ${OpenCV_INCLUDE_DIRS}
+        ${cv_bridge_INCLUDE_DIRS}
         )
 target_link_libraries(arena_camera_node
         ${OpenCV_LIBRARIES}
         ${arena_sdk_LIBRARIES}
+        ${image_geometry_LIBRARIES}
+        ${camera_info_manager_LIBRARIES}
         )
 
 # These are external libraries and include folders that we want to be visible to the packages
 # that depend on this one.
 ament_export_include_directories(${arena_sdk_INCLUDES})
+
+# Install headers into include/lucid_vision_driver/
+#install(
+#    DIRECTORY include/lucid_vision_driver/
+#    DESTINATION include/lucid_vision_driver
+#)
 
 if (BUILD_TESTING)
     find_package(ament_lint_auto REQUIRED)
@@ -61,4 +76,5 @@ ament_auto_package(INSTALL_TO_SHARE
         launch
         config
         param
+        USE_SCOPED_HEADER_INSTALL_DIR
         )

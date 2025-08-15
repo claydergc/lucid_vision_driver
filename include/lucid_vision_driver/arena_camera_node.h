@@ -17,7 +17,7 @@
 #ifndef BUILD_SRC_ARENA_CAMERA_SRC_ARENA_CAMERA_NODE_H_
 #define BUILD_SRC_ARENA_CAMERA_SRC_ARENA_CAMERA_NODE_H_
 
-#include "arena_camera/camera_settings.h"
+#include "lucid_vision_driver/camera_settings.h"
 #include "arena_cameras_handler.h"
 #include "rcl_interfaces/msg/set_parameters_result.hpp"
 
@@ -30,17 +30,19 @@
 #include <sensor_msgs/msg/image.hpp>
 
 #include <Arena/ArenaApi.h>
-#include <image_geometry/pinhole_camera_model.h>
+#include <image_geometry/pinhole_camera_model.hpp>
 
 #include <chrono>
 #include <thread>
 
 class ArenaCameraNode : public ::rclcpp::Node
 {
+
 public:
   explicit ArenaCameraNode(rclcpp::NodeOptions node_options);
-
+  ~ArenaCameraNode();
   CameraSetting read_camera_settings();
+  //bool continueGrabbingImgs;
 
 private:
   void publish_image(std::uint32_t camera_index, const cv::Mat & image);

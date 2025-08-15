@@ -6,7 +6,7 @@ sensor_msgs/Image). This node can connect to multiple camera devices discovered 
 to use this node, you need to install Lucid Vision Labs' ArenaSDK.
 
 ### Installation
-This camera driver has been tested on ROS2 Galactic(Ubuntu 20.04) and ROS2 Humble(Ubuntu 22.04).
+This camera driver has been tested on ROS2 Jazzy (Ubuntu 24.04).
 
 1. Download ArenaSDK from [here](https://thinklucid.com/downloads-hub/).
 2. Install ArenaSDK.
@@ -42,7 +42,7 @@ This camera driver has been tested on ROS2 Galactic(Ubuntu 20.04) and ROS2 Humbl
 
    8.2 Set your "Fixed Frame" as "lucid_vision".
 
-   8.3 Set your "Reliability Policy" to "Best Efford".  (Best effort works in UDP, Reliable works in TCP/IP)
+   8.3 Set your "Reliability Policy" to "Best Effort".  (Best effort works in UDP, Reliable works in TCP/IP)
 
    8.4 Be sure that the visibility button is checked.
 

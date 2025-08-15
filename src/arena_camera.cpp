@@ -15,7 +15,8 @@
  */
 
 
-#include "arena_camera/arena_camera.h"
+#include "lucid_vision_driver/arena_camera.h"
+#include "lucid_vision_driver/arena_camera_node.h"
 #include <rclcpp/rclcpp.hpp>
 
 ArenaCamera::ArenaCamera(Arena::IDevice * device, CameraSetting & camera_setting)
@@ -58,6 +59,8 @@ void ArenaCamera::acquisition()
   std::cout << "Camera idx:" << m_cam_idx << " acquisition thread." << std::endl;
 
   Arena::SetNodeValue<GenICam::gcstring>(m_device->GetNodeMap(), "AcquisitionMode", "Continuous");
+  
+  Arena::SetNodeValue<GenICam::gcstring>(m_device->GetTLStreamNodeMap(), "StreamBufferHandlingMode", "NewestOnly");
 
   // Enable stream auto negotiate packet size
   Arena::SetNodeValue<bool>(m_device->GetTLStreamNodeMap(), "StreamAutoNegotiatePacketSize", true);
@@ -65,7 +68,7 @@ void ArenaCamera::acquisition()
   // Enable stream packet resend
   Arena::SetNodeValue<bool>(m_device->GetTLStreamNodeMap(), "StreamPacketResendEnable", true);
 
-  GenApi::CIntegerPtr pBinningHorizontal = m_device->GetNodeMap()->GetNode("BinningHorizontal");
+  /*GenApi::CIntegerPtr pBinningHorizontal = m_device->GetNodeMap()->GetNode("BinningHorizontal");
   if (GenApi::IsWritable(pBinningHorizontal)) {
     size_t binning_x_to_set = m_horizontal_binning;
     if (binning_x_to_set < pBinningHorizontal->GetMin()) {
@@ -84,9 +87,9 @@ void ArenaCamera::acquisition()
     }
   } else {
     std::cout << "Binning horizantal value not readable." << std::endl;
-  }
+  }*/
 
-  GenApi::CIntegerPtr pBinningVertical = m_device->GetNodeMap()->GetNode("BinningVertical");
+  /*GenApi::CIntegerPtr pBinningVertical = m_device->GetNodeMap()->GetNode("BinningVertical");
   if (GenApi::IsWritable(pBinningVertical)) {
     size_t binning_y_to_set = m_vertical_binning;
     if (binning_y_to_set < pBinningVertical->GetMin()) {
@@ -105,12 +108,23 @@ void ArenaCamera::acquisition()
     }
   } else {
     std::cout << "Binning vertical value not readable." << std::endl;
-  }
+  }*/
 
   m_device->StartStream();
 }
 
-void ArenaCamera::stop_stream() { m_device->StopStream(); }
+void ArenaCamera::stop_stream() { 
+
+//std::cout<<(m_device==nullptr)<<std::endl;
+
+//if(m_device!=nullptr)
+//std::cout<<"NO SOY NULL"<<std::endl;
+m_signal_publish_image = nullptr; // AQUI ESTA EL PROBLEMA y LA SOLUCION!!
+//std::cout<<"Antes"<<std::endl;
+m_device->StopStream(); 
+//std::cout<<"Despues"<<std::endl;
+
+}
 
 void ArenaCamera::destroy_device(Arena::ISystem * system)
 {
@@ -126,28 +140,28 @@ void ArenaCamera::set_on_image_callback(ImageCallbackFunction callback)
 
 cv::Mat ArenaCamera::convert_to_image(Arena::IImage * pImage, const std::string & frame_id)
 {
-  cv::Mat image_cv =
-    cv::Mat(pImage->GetHeight(), pImage->GetWidth(), CV_8UC1, (uint8_t *)pImage->GetData());
-
-  cv::Mat image_bgr(image_cv.rows, image_cv.cols, CV_8UC3);
-  cvtColor(image_cv, image_bgr, cv::COLOR_BayerBG2BGR);
-
-  if (
-    m_vertical_binning / m_reached_vertical_binning != 1 ||
-    m_horizontal_binning / m_reached_horizontal_binning != 1) {
-    int ext_vertical_binning = m_vertical_binning / m_reached_vertical_binning;
-    int ext_horizontal_binning = m_horizontal_binning / m_reached_horizontal_binning;
-
-    cv::resize(
-      image_bgr, image_bgr,
-      cv::Size(image_bgr.cols / ext_horizontal_binning, image_bgr.rows / ext_vertical_binning));
+  if(dim_received==false) {
+    img_height = pImage->GetHeight();
+    img_width = pImage->GetWidth();
+    dim_received=true;
   }
+  
+  //cv::Mat img(img_height, img_width, CV_8UC1, (uint8_t *)pImage->GetData());
+  
+  //m_device->RequeueBuffer(pImage); ERROR!
 
-  return image_bgr;
+  //if(ArenaCameraNode::continueGrabbingImgs)
+  //if(pImage!=nullptr)
+  return cv::Mat(img_height, img_width, CV_8UC1, (uint8_t *)pImage->GetData());
+  //else
+  //return cv::Mat::zeros(img_height, img_width, CV_8UC1);
+  //return img;
 }
 
 ArenaCamera::~ArenaCamera()
 {
-  std::cout << "Camera:" << m_cam_idx << " ~ArenaCamera()" << std::endl;
-  stop_stream();
+  std::cout << "Camera stopping:" << m_cam_idx << " ~ArenaCamera()" << std::endl;
+  //stop_stream();
+  //std::cout << "Camera stopped:" << std::endl;
+  //destroy_device(Arena::ISystem * system) // It cant be called from here
 }

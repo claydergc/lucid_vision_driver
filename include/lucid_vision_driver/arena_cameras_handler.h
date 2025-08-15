@@ -18,8 +18,8 @@
 #define BUILD_CAMERAS_WRAPPER_H
 
 #include "Arena/ArenaApi.h"
-#include "arena_camera/arena_camera.h"
-#include "arena_camera/camera_settings.h"
+#include "lucid_vision_driver/arena_camera.h"
+#include "lucid_vision_driver/camera_settings.h"
 
 #include <vector>
 
@@ -76,6 +76,8 @@ private:
   Arena::ISystem * m_p_system;
 
   Arena::IDevice * m_device;
+  
+  //GenICam::gcstring acquisitionModeInitial;
 
   bool m_enable_rectifying;
   bool m_enable_compressing;

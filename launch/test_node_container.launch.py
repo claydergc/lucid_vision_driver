@@ -45,7 +45,7 @@ def generate_launch_description():
         camera_yaml_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
     container = ComposableNodeContainer(
-        name="camera_node_right",
+        name="camera_node_exe",
         namespace="/perception/object_detection",
         package="rclcpp_components",
         executable="component_container",
@@ -53,7 +53,7 @@ def generate_launch_description():
             ComposableNode(
                 package="lucid_vision_driver",
                 plugin="ArenaCameraNode",
-                name="arena_camera_node_right",
+                name="arena_camera_node_exe",
                 parameters=[{"camera_name": camera_yaml_param['camera_name'],
                              "frame_id": camera_yaml_param['frame_id'],
                              "pixel_format": camera_yaml_param['pixel_format'],
@@ -63,13 +63,15 @@ def generate_launch_description():
                              "horizontal_binning": camera_yaml_param['horizontal_binning'],
                              "vertical_binning": camera_yaml_param['vertical_binning'],
                              "use_default_device_settings": camera_yaml_param['use_default_device_settings'],
-                             "exposure_auto": camera_yaml_param['exposure_auto'],
-                             "exposure_target": camera_yaml_param['exposure_target'],
-                             "gain_auto": camera_yaml_param['gain_auto'],
-                             "gain_target": camera_yaml_param['gain_target'],
-                             "gamma_target": camera_yaml_param['gamma_target'],
+                             "exposure_auto": True,
+                             "exposure_target": 187,
+                             "gain_auto": False,
+                             "gain_target": 1,
+                             "gamma_target": 1.0,
                              "enable_compressing": camera_yaml_param['enable_compressing'],
                              "enable_rectifying": camera_yaml_param['enable_rectifying'],
+                             "image_horizontal_flip": False,
+                             "image_vertical_flip": False
                              }],
                 remappings=[
                 ],

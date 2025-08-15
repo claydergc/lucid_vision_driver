@@ -18,7 +18,7 @@
 #define BUILD_ARENA_CAMERA_H
 
 #include "Arena/ArenaApi.h"
-#include "arena_camera/camera_settings.h"
+#include "lucid_vision_driver/camera_settings.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -56,10 +56,10 @@ public:
   using ImageCallbackFunction = std::function<void(std::uint32_t, cv::Mat)>;
 
   ImageCallbackFunction m_signal_publish_image{};
-
+  
   void set_on_image_callback(ImageCallbackFunction callback);
 
-  void OnImage(Arena::IImage * pImage)
+  void OnImage(Arena::IImage *pImage)
   {
     m_signal_publish_image(m_cam_idx, convert_to_image(pImage, m_frame_id));
   }
@@ -88,8 +88,12 @@ private:
   uint32_t m_reached_vertical_binning;
 
   std::shared_future<void> future_;
+  
+  uint32_t img_height;
+  uint32_t img_width;
+  bool dim_received = false;
 
-  Arena::IImage * pImage = nullptr;
+  //Arena::IImage * pImage = nullptr;
 };
 
 #endif  // BUILD_ARENA_CAMERA_H

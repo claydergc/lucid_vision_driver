@@ -14,14 +14,57 @@
 * limitations under the License.
  */
 
-#include "arena_camera/arena_cameras_handler.h"
+#include "lucid_vision_driver/arena_cameras_handler.h"
 #include <rclcpp/rclcpp.hpp>
 #include <algorithm>
 
+#define TAB1 "  "
+#define TAB2 "    "
+
 ArenaCamerasHandler::ArenaCamerasHandler()
 {
+  //acquisitionModeInitial = Arena::GetNodeValue<GenICam::gcstring>(m_device->GetNodeMap(), "AcquisitionMode");
   m_p_system = Arena::OpenSystem();
   m_p_system->UpdateDevices(100);
+}
+
+Arena::DeviceInfo SelectDevice(std::vector<Arena::DeviceInfo>& deviceInfos)
+{
+	if (deviceInfos.size() == 1)
+	{
+		std::cout << "\n"
+				  << TAB1 << "Only one device detected: " << deviceInfos[0].ModelName() << TAB1 << deviceInfos[0].SerialNumber() << TAB1 << deviceInfos[0].IpAddressStr() << ".\n";
+		std::cout << TAB1 << "Automatically selecting this device.\n";
+		return deviceInfos[0];
+	}
+
+	std::cout << TAB1 << "\nSelect device:\n";
+	for (size_t i = 0; i < deviceInfos.size(); i++)
+	{
+		std::cout << TAB1 << i + 1 << ". " << deviceInfos[i].ModelName() << TAB1 << deviceInfos[i].SerialNumber() << TAB1 << deviceInfos[i].IpAddressStr() << "\n";
+	}
+	size_t selection = 0;
+
+	do
+	{
+		std::cout << TAB1 << "Make selection (1-" << deviceInfos.size() << "): ";
+		std::cin >> selection;
+
+		if (std::cin.fail())
+		{
+			std::cin.clear();
+			while (std::cin.get() != '\n')
+				;
+			std::cout << TAB1 << "Invalid input. Please enter a number.\n";
+		}
+		else if (selection <= 0 || selection > deviceInfos.size())
+		{
+			std::cout << TAB1 << "Invalid device selected. Please select a device in the range (1-" << deviceInfos.size() << ").\n";
+		}
+
+	} while (selection <= 0 || selection > deviceInfos.size());
+
+	return deviceInfos[selection - 1];
 }
 
 void ArenaCamerasHandler::create_camera_from_settings(CameraSetting & camera_settings)
@@ -39,15 +82,18 @@ void ArenaCamerasHandler::create_camera_from_settings(CameraSetting & camera_set
     return std::to_string(camera_settings.get_serial_no()) == d_info.SerialNumber().c_str();
   });
 
-  if (it != devicesInfos.end()) {
-    m_device = m_p_system->CreateDevice(*it);
-    m_enable_rectifying = camera_settings.get_enable_rectifying();
-    m_enable_compressing = camera_settings.get_enable_compressing();
-    m_use_default_device_settings = camera_settings.get_use_default_device_settings();
+  Arena::DeviceInfo selectedDeviceInfo = SelectDevice(devicesInfos);
+
+  //if (it != devicesInfos.end()) {
+    //m_device = m_p_system->CreateDevice(*it);
+    m_device = m_p_system->CreateDevice(selectedDeviceInfo);
+    //m_enable_rectifying = camera_settings.get_enable_rectifying();
+    //m_enable_compressing = camera_settings.get_enable_compressing();
+    //m_use_default_device_settings = camera_settings.get_use_default_device_settings();
     // Prepare camera settings
     this->set_fps(camera_settings.get_fps());
 
-    if (!m_use_default_device_settings) {
+    /*if (!m_use_default_device_settings) {
       this->set_auto_exposure(camera_settings.get_enable_exposure_auto());
       this->set_exposure_value(camera_settings.get_auto_exposure_value());
       this->set_auto_gain(camera_settings.get_enable_exposure_auto());
@@ -55,17 +101,17 @@ void ArenaCamerasHandler::create_camera_from_settings(CameraSetting & camera_set
       this->set_gamma_value(camera_settings.get_gamma_value());
       this->set_reverse_image_y(camera_settings.get_image_horizontal_flip());
       this->set_reverse_image_x(camera_settings.get_image_vertical_flip());
-    }
+    }*/
 
     m_cameras = new ArenaCamera(m_device, camera_settings);
     m_device->RegisterImageCallback(m_cameras);
 
-  } else {
-    RCLCPP_ERROR(
-      rclcpp::get_logger("ARENA_CAMERA_HANDLER"),
-      "Wrong device serial no in parameters file. Please check the serial no and try again.");
-    throw std::runtime_error("arena_camera: Wrong device serial no in parameters file.");
-  }
+  //} else {
+  // RCLCPP_ERROR(
+  //    rclcpp::get_logger("ARENA_CAMERA_HANDLER"),
+  //    "Wrong device serial no in parameters file. Please check the serial no and try again.");
+  //  throw std::runtime_error("arena_camera: Wrong device serial no in parameters file.");
+  //}
 }
 
 void ArenaCamerasHandler::set_image_callback(ArenaCamera::ImageCallbackFunction callback)
@@ -76,11 +122,13 @@ void ArenaCamerasHandler::set_image_callback(ArenaCamera::ImageCallbackFunction 
 void ArenaCamerasHandler::start_stream() { this->m_cameras->acquisition(); }
 
 void ArenaCamerasHandler::stop_stream() { this->m_cameras->stop_stream(); }
+//void ArenaCamerasHandler::stop_stream() { delete this->m_cameras; }
 
 void ArenaCamerasHandler::set_fps(uint32_t fps)
 {
   auto node_map = m_device->GetNodeMap();
-  auto max_fps = GenApi::CFloatPtr(node_map->GetNode("AcquisitionFrameRate"))->GetMax();
+  //auto max_fps = GenApi::CFloatPtr(node_map->GetNode("AcquisitionFrameRate"))->GetMax();
+  uint32_t max_fps = 21;
   if (fps > max_fps || fps < 0) {
     Arena::SetNodeValue<bool>(node_map, "AcquisitionFrameRateEnable", true);
     Arena::SetNodeValue<double>(node_map, "AcquisitionFrameRate", max_fps);
@@ -92,16 +140,29 @@ void ArenaCamerasHandler::set_fps(uint32_t fps)
 
 ArenaCamerasHandler::~ArenaCamerasHandler()
 {
-  std::cout << " ~ArenaCamerasHandler()" << std::endl;
+  std::cout << " ~ArenaCamerasHandler() -1" << std::endl;
 
   this->stop_stream();
+  //m_device->StopStream(); //NO!
+  
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 0" << std::endl;
+  //Arena::SetNodeValue<GenICam::gcstring>(m_device->GetNodeMap(), "AcquisitionMode", acquisitionModeInitial);
   m_device->DeregisterImageCallback(m_cameras);
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 1" << std::endl;
   this->m_cameras->destroy_device(m_p_system);
-  CloseSystem(m_p_system);
-
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 2" << std::endl;
+  //CloseSystem(m_p_system);
   delete m_cameras;
-  delete m_p_system;
-  delete m_device;
+  Arena::CloseSystem(m_p_system);
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 3" << std::endl;
+
+  
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 4" << std::endl;
+  //delete m_p_system; //AQUI ESTA EL PROBLEMA. CHEQUEAR SI SE PUEDE BORRAR!!
+  //std::cout << " ~ArenaCamerasHandler() objects destroyed 5" << std::endl;
+  //delete m_device;
+  
+  std::cout << " ~ArenaCamerasHandler() objects destroyed" << std::endl;
 }
 
 GenICam_3_3_LUCID::gcstring ArenaCamerasHandler::get_auto_exposure()
@@ -151,6 +212,7 @@ void ArenaCamerasHandler::set_exposure_value(float exposure_value)
       "Not possible to set exposure value when auto exposure is enabled.");
   }
 }
+
 GenICam_3_3_LUCID::gcstring ArenaCamerasHandler::get_auto_gain()
 {
   return Arena::GetNodeValue<GenICam::gcstring>(m_device->GetNodeMap(), "GainAuto");
